@@ -17,9 +17,14 @@ die() {
 }
 
 timestamp_now() {
-  :  # TODO
+  date -u +%Y%m%d%H%M%S
 }
 
 slugify() {
-  :  # TODO
+  local s=$1
+  s=$(printf '%s' "$s" | tr '[:upper:]' '[:lower:]' | tr -c '[:alnum:]' '_')
+  while [[ $s == *__* ]]; do s=${s//__/_}; done
+  s=${s#_}
+  s=${s%_}
+  printf '%s' "$s"
 }

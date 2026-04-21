@@ -20,8 +20,11 @@ dispatch() {
       shift
       cmd_setup "$@"
       ;;
-    init|new|status|apply)
-      :  # TODO: wire in future slices
+    new)
+      shift
+      cmd_new "$@"
+      ;;
+    init|status|apply)
       log_error "command not yet implemented: $cmd"
       exit 1
       ;;
