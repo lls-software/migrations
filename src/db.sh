@@ -13,16 +13,16 @@ db_apply_file() {
   :  # TODO
 }
 
-db_pending_set() {
+db_applied_subset() {
   local dburl=$1
   local values
   values=$(awk 'NF { printf "%s('\''%s'\'')", sep, $0; sep="," }')
   [[ -n $values ]] || return 0
   db_query "$dburl" \
-    "SELECT v.t FROM (VALUES $values) AS v(t)
-     LEFT JOIN migrations m ON m.timestamp = v.t
-     WHERE m.timestamp IS NULL
-     ORDER BY v.t"
+    "SELECT m.timestamp || '|' || m.description
+     FROM (VALUES $values) AS v(t)
+     JOIN migrations m ON m.timestamp = v.t
+     ORDER BY m.timestamp"
 }
 
 db_list_applied() {

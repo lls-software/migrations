@@ -37,29 +37,32 @@ cmd_status() {
     die "migrations table not found; run: migrations.sh setup <dburl>"
   fi
 
-  local files pending all_applied=
+  local files applied all_applied=
   files=$(fs_list_migrations "$dir")
-  pending=$(printf '%s\n' "$files" \
+  applied=$(printf '%s\n' "$files" \
             | awk -F'|' '$1 ~ /^[0-9]+$/ && (length($1)==10 || length($1)==14) {print $1}' \
-            | db_pending_set "$dburl")
+            | db_applied_subset "$dburl")
   if [[ -n $history ]]; then
     all_applied=$(db_list_applied "$dburl")
   fi
 
-  status_render "$dir" "$files" "$pending" "$all_applied"
+  status_render "$dir" "$files" "$applied" "$all_applied"
 }
 
 status_render() {
-  local dir=$1 files=$2 pending=$3 all_applied=$4
+  local dir=$1 files=$2 applied=$3 all_applied=$4
 
-  declare -A pending_set=()
+  declare -A applied_desc=()
   declare -A file_set=()
   local ts desc line
 
-  if [[ -n $pending ]]; then
-    while IFS= read -r ts; do
-      [[ -n $ts ]] && pending_set[$ts]=1
-    done <<< "$pending"
+  if [[ -n $applied ]]; then
+    while IFS= read -r line; do
+      [[ -n $line ]] || continue
+      ts=${line%%|*}
+      desc=${line#*|}
+      applied_desc[$ts]=$desc
+    done <<< "$applied"
   fi
 
   local rows=
@@ -69,10 +72,10 @@ status_render() {
       ts=${line%%|*}
       desc=${line#*|}
       file_set[$ts]=1
-      if [[ -n ${pending_set[$ts]-} ]]; then
-        rows+=$(printf '%s\tpending\t%s\n' "$ts" "$desc")$'\n'
+      if [[ -n ${applied_desc[$ts]+x} ]]; then
+        rows+=$(printf '%s\tapplied\t%s\n' "$ts" "${applied_desc[$ts]}")$'\n'
       else
-        rows+=$(printf '%s\tapplied\t%s\n' "$ts" "$desc")$'\n'
+        rows+=$(printf '%s\tpending\t%s\n' "$ts" "$desc")$'\n'
       fi
     done <<< "$files"
   fi
