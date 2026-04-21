@@ -16,7 +16,11 @@ dispatch() {
       print_help >&2
       exit 1
       ;;
-    init|setup|new|status|apply)
+    setup)
+      shift
+      cmd_setup "$@"
+      ;;
+    init|new|status|apply)
       :  # TODO: wire in future slices
       log_error "command not yet implemented: $cmd"
       exit 1

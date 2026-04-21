@@ -4,7 +4,8 @@ db_query() {
 }
 
 db_exec() {
-  :  # TODO
+  local dburl=$1 sql=$2
+  psql "$dburl" -v ON_ERROR_STOP=1 -X -q -c "$sql"
 }
 
 db_apply_file() {
@@ -16,5 +17,7 @@ db_list_applied() {
 }
 
 db_has_migrations_table() {
-  :  # TODO
+  local dburl=$1
+  psql "$dburl" -v ON_ERROR_STOP=1 -X -tAc \
+    "SELECT to_regclass('public.migrations') IS NOT NULL"
 }

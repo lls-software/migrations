@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 log_info() {
-  :  # TODO
+  printf 'migrations.sh: %s\n' "$*"
 }
 
 log_warn() {
@@ -12,7 +12,8 @@ log_error() {
 }
 
 die() {
-  :  # TODO
+  log_error "$*"
+  exit 1
 }
 
 timestamp_now() {
