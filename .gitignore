@@ -195,3 +195,6 @@ web_modules/
 wheels/
 yarn-debug.log*
 yarn-error.log*
+
+# Built artifact
+migrations.sh

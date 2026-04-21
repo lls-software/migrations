@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+cd "$(dirname "$0")"
+
 # Concatenation order: utilities first, commands, dispatcher last.
 SRC_FILES=(
   src/util.sh
@@ -16,8 +18,22 @@ SRC_FILES=(
 )
 
 build() {
-  :  # TODO: concat SRC_FILES, strip `^source ` lines, prepend shebang +
-     # `set -euo pipefail` + VERSION constant, append `main "$@"`, chmod +x.
+  local version
+  version=$(<VERSION)
+  local out=migrations.sh
+
+  {
+    echo '#!/usr/bin/env bash'
+    echo 'set -euo pipefail'
+    echo
+    printf 'VERSION="%s"\n' "$version"
+    echo
+    sed '/^source /d' "${SRC_FILES[@]}"
+    echo
+    echo 'main "$@"'
+  } > "$out"
+
+  chmod +x "$out"
 }
 
 build "$@"

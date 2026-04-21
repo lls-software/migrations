@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 fs_list_migrations() {
   :  # TODO
 }

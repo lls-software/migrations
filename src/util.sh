@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 log_info() {
   :  # TODO
 }
@@ -7,7 +8,7 @@ log_warn() {
 }
 
 log_error() {
-  :  # TODO
+  printf 'migrations.sh: error: %s\n' "$*" >&2
 }
 
 die() {

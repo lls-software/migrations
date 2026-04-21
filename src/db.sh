@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 db_query() {
   :  # TODO
 }

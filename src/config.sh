@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 config_find() {
   :  # TODO
 }
