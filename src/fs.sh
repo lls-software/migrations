@@ -49,9 +49,12 @@ fs_find_migration_path() {
 }
 
 fs_new_migration() {
-  local dir=$1 timestamp=$2 slug=$3 description=$4
+  local dir=$1 timestamp=$2 slug=$3 description=$4 directive=${5-}
   local path="$dir/${timestamp}_${slug}.sql"
-  printf -- '-- %s\n' "$description" > "$path"
+  {
+    printf -- '-- %s\n' "$description"
+    [[ -n $directive ]] && printf -- '-- migrations.sh: %s\n' "$directive"
+  } > "$path"
   printf '%s\n' "$path"
 }
 

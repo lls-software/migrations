@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 cmd_new() {
   local dir=./migrations
-  local description=
+  local description=''
+  local directive=''
 
   while (( $# )); do
     case $1 in
@@ -12,6 +13,10 @@ cmd_new() {
         ;;
       --dir=*)
         dir=${1#--dir=}
+        shift
+        ;;
+      --no-transaction)
+        directive=no-transaction
         shift
         ;;
       --)
@@ -37,5 +42,5 @@ cmd_new() {
   slug=$(slugify "$description")
   [[ -n $slug ]] || die "new: description has no slug-able characters"
 
-  fs_new_migration "$dir" "$(timestamp_now)" "$slug" "$description"
+  fs_new_migration "$dir" "$(timestamp_now)" "$slug" "$description" "$directive"
 }
