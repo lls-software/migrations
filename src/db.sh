@@ -10,7 +10,18 @@ db_exec() {
 }
 
 db_apply_file() {
-  :  # TODO
+  local dburl=$1 file=$2 ts=$3 desc=$4
+  local esc=${desc//\'/\'\'}
+  local insert_sql="INSERT INTO migrations(timestamp, description) VALUES ('$ts', '$esc')"
+
+  if fs_read_header_directive "$file" no-transaction; then
+    psql "$dburl" -v ON_ERROR_STOP=1 -X -q -f "$file" || return 1
+    db_exec "$dburl" "$insert_sql"
+  else
+    psql "$dburl" -v ON_ERROR_STOP=1 -X -q --single-transaction \
+      -f "$file" \
+      -c "$insert_sql"
+  fi
 }
 
 db_applied_subset() {

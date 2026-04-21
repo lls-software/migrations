@@ -36,7 +36,11 @@ dispatch() {
       shift
       cmd_unmark "$@"
       ;;
-    init|apply)
+    apply)
+      shift
+      cmd_apply "$@"
+      ;;
+    init)
       log_error "command not yet implemented: $cmd"
       exit 1
       ;;

@@ -15,13 +15,15 @@ fs_list_migrations() {
 }
 
 fs_read_description() {
-  local first
-  IFS= read -r first < "$1" || true
-  if [[ $first == '-- '* ]]; then
-    printf '%s' "${first#-- }"
-  else
-    printf '%s' ''
-  fi
+  local line n=0
+  while IFS= read -r line; do
+    (( n++ < 5 )) || break
+    [[ $line == '--'* ]] || break
+    [[ $line == '-- migrations.sh: '* ]] && continue
+    printf '%s' "${line#-- }"
+    return
+  done < "$1"
+  printf '%s' ''
 }
 
 fs_find_migration() {
@@ -35,6 +37,17 @@ fs_find_migration() {
   return 1
 }
 
+fs_find_migration_path() {
+  local dir=$1 ts=$2
+  local f
+  for f in "$dir/${ts}"_*.sql "$dir/${ts}.sql"; do
+    [[ -e $f ]] || continue
+    printf '%s\n' "$f"
+    return 0
+  done
+  return 1
+}
+
 fs_new_migration() {
   local dir=$1 timestamp=$2 slug=$3 description=$4
   local path="$dir/${timestamp}_${slug}.sql"
@@ -43,5 +56,12 @@ fs_new_migration() {
 }
 
 fs_read_header_directive() {
-  :  # TODO
+  local file=$1 directive=$2
+  local line n=0
+  while IFS= read -r line; do
+    (( n++ < 5 )) || break
+    [[ $line == '--'* ]] || break
+    [[ $line == "-- migrations.sh: $directive" ]] && return 0
+  done < "$file"
+  return 1
 }
