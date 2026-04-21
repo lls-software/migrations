@@ -30,6 +30,19 @@ db_list_applied() {
     "SELECT timestamp || '|' || description FROM migrations ORDER BY timestamp"
 }
 
+db_insert_migration() {
+  local dburl=$1 ts=$2 desc=$3
+  local esc=${desc//\'/\'\'}
+  db_exec "$dburl" \
+    "INSERT INTO migrations(timestamp, description) VALUES ('$ts', '$esc')"
+}
+
+db_delete_migration() {
+  local dburl=$1 ts=$2
+  db_query "$dburl" \
+    "DELETE FROM migrations WHERE timestamp = '$ts' RETURNING 1"
+}
+
 db_has_migrations_table() {
   local dburl=$1
   psql "$dburl" -v ON_ERROR_STOP=1 -X -tAc \

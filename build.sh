@@ -13,6 +13,8 @@ SRC_FILES=(
   src/cmd_setup.sh
   src/cmd_new.sh
   src/cmd_status.sh
+  src/cmd_mark.sh
+  src/cmd_unmark.sh
   src/cmd_apply.sh
   src/main.sh
 )

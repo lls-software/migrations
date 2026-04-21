@@ -24,6 +24,17 @@ fs_read_description() {
   fi
 }
 
+fs_find_migration() {
+  local dir=$1 ts=$2
+  local f
+  for f in "$dir/${ts}"_*.sql "$dir/${ts}.sql"; do
+    [[ -e $f ]] || continue
+    fs_read_description "$f"
+    return 0
+  done
+  return 1
+}
+
 fs_new_migration() {
   local dir=$1 timestamp=$2 slug=$3 description=$4
   local path="$dir/${timestamp}_${slug}.sql"
