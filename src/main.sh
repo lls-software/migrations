@@ -24,7 +24,11 @@ dispatch() {
       shift
       cmd_new "$@"
       ;;
-    init|status|apply)
+    status)
+      shift
+      cmd_status "$@"
+      ;;
+    init|apply)
       log_error "command not yet implemented: $cmd"
       exit 1
       ;;
@@ -53,7 +57,8 @@ Commands:
   init                    Scaffold migrations/, schema.sql, and config in the current repo
   setup   <dburl>         Create the migrations tracking table on the target database
   new     <description>   Create a new timestamped migration file
-  status  <dburl>         Show pending migrations and drift
+  status  [--history] <dburl>
+                          Show pending migrations (and, with --history, all applied rows)
   apply   <dburl>         Apply all pending migrations in timestamp order
 EOF
 }
