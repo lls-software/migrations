@@ -68,8 +68,8 @@ Commands:
   status  [--history] <dburl>
                           Show pending migrations (and, with --history, all applied rows)
   apply   <dburl>         Apply all pending migrations in timestamp order
-  mark    <dburl> <timestamp> [--description <text>] [--force]
-                          Record a migration as applied without running it
+  mark    <dburl> (<timestamp> | --all) [--description <text>] [--force]
+                          Record migration(s) as applied without running
   unmark  <dburl> <timestamp>
                           Remove a migration's row from the tracking table
 EOF

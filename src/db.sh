@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 db_query() {
   local dburl=$1 sql=$2
-  psql "$dburl" -v ON_ERROR_STOP=1 -X -tAc "$sql"
+  psql "$dburl" -v ON_ERROR_STOP=1 -X -q -tAc "$sql"
 }
 
 db_exec() {
@@ -28,6 +28,26 @@ db_applied_subset() {
 db_list_applied() {
   db_query "$1" \
     "SELECT timestamp || '|' || description FROM migrations ORDER BY timestamp"
+}
+
+db_mark_missing() {
+  local dburl=$1
+  local values='' sep='' line ts desc esc
+  while IFS= read -r line; do
+    [[ -n $line ]] || continue
+    ts=${line%%|*}
+    desc=${line#*|}
+    [[ $ts =~ ^[0-9]{10}$ || $ts =~ ^[0-9]{14}$ ]] || continue
+    esc=${desc//\'/\'\'}
+    values+="${sep}('$ts','$esc')"
+    sep=","
+  done
+  [[ -n $values ]] || return 0
+  db_query "$dburl" \
+    "INSERT INTO migrations(timestamp, description)
+     VALUES $values
+     ON CONFLICT (timestamp) DO NOTHING
+     RETURNING timestamp"
 }
 
 db_insert_migration() {
