@@ -157,3 +157,7 @@ Produces `migrations.sh` by concatenating `src/*.sh` in the order declared in `b
 ## Credits
 
 Inspired by Dimitri Fontaine's *The Art of PostgreSQL*, which argues for treating SQL as a first-class language rather than something an ORM hides. `migrations.sh` is an attempt to apply that stance to schema change: plain SQL files, `psql` as the runtime, a DBA can read every migration.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

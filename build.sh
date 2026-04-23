@@ -26,6 +26,10 @@ build() {
 
   {
     echo '#!/usr/bin/env bash'
+    printf '# migrations.sh %s\n' "$version"
+    echo '# Copyright (c) 2026 Leandro Lima'
+    echo '# SPDX-License-Identifier: MIT'
+    echo '# https://migrations.sh'
     echo 'set -euo pipefail'
     echo
     printf 'VERSION="%s"\n' "$version"
