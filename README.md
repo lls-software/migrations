@@ -43,8 +43,8 @@ Adopting an existing project whose schema is already applied:
 ### Two stores, different lifetimes
 
 ```
-  repo (short rolling tail)          database (unbounded log)
-  ─────────────────────────          ────────────────────────
+  repo (short rolling tail)                database (unbounded log)
+  ─────────────────────────                ────────────────────────
   migrations/                              migrations table
   ├── 20260118093012_add_orders.sql        ├── 20250403...  add_users
   ├── 20260122141055_index_email.sql       ├── 20250615...  rename_column
