@@ -11,9 +11,18 @@ config_find() {
 
 config_read_dir() {
   local file=$1
+  local cfg_dir=${file%/*}
   local val
   val=$(grep -v '^#' -- <"$file" 2>/dev/null | grep '^dir=' | head -1 | cut -d= -f2-)
-  [[ -n $val ]] && printf '%s\n' "$val" || printf '%s\n' ./migrations
+  if [[ -n $val ]]; then
+    if [[ $val == /* ]]; then
+      printf '%s\n' "$val"
+    else
+        printf '%s\n' "$cfg_dir/$val"
+    fi
+  else
+    printf '%s\n' "$cfg_dir/migrations"
+  fi
 }
 
 config_get_dir() {
