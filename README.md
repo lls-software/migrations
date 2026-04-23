@@ -45,13 +45,13 @@ Adopting an existing project whose schema is already applied:
 ```
   repo (short rolling tail)          database (unbounded log)
   ─────────────────────────          ────────────────────────
-  migrations/                        migrations table
-  ├── 20260118_add_orders.sql        ├── 20250403...  add_users
-  ├── 20260122_index_email.sql       ├── 20250615...  rename_column
-  └── 20260123_backfill_totals.sql   ├── ...
-                                     ├── 20260118...  add_orders
-         apply                       ├── 20260122...  index_email
-  ──────────────────►                └── 20260123...  backfill_totals
+  migrations/                              migrations table
+  ├── 20260118093012_add_orders.sql        ├── 20250403...  add_users
+  ├── 20260122141055_index_email.sql       ├── 20250615...  rename_column
+  └── 20260123094512_backfill_totals.sql   ├── ...
+                                           ├── 20260118...  add_orders
+         apply                             ├── 20260122...  index_email
+  ──────────────────►                      └── 20260123...  backfill_totals
 ```
 
 The **directory** holds only migrations still rolling out across environments. Once a migration has shipped everywhere, delete the file from the repo. The **tracking table** is the forever-log of every migration that ever ran against a given database; `status --history` surfaces rows whose files are gone.
