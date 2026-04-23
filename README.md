@@ -4,9 +4,43 @@ A single-file Bash tool for SQL-first, forward-only Postgres migrations.
 
 Migrations are plain `.sql` files. The tool runs them against a database, tracks what's been applied in a dedicated table, and stays out of your way otherwise. No DSL, no ORM, no runtime beyond `bash` and `psql`.
 
-## Architecture
+## Getting Started
 
-Two stores with different lifetimes:
+Drop `migrations.sh` into your project:
+
+```bash
+curl -L -o migrations.sh https://download.migrations.sh/
+chmod +x migrations.sh
+git add migrations.sh
+```
+
+Initialize:
+
+```bash
+./migrations.sh init                    # creates migrations/ and .migrationsrc
+./migrations.sh setup "$DATABASE_URL"   # creates the migrations tracking table
+```
+
+Write and apply a migration:
+
+```bash
+./migrations.sh new "Add orders table"  # creates migrations/<ts>_add_orders_table.sql
+# ...edit the file...
+./migrations.sh status "$DATABASE_URL"
+./migrations.sh apply  "$DATABASE_URL"
+```
+
+Adopting an existing project whose schema is already applied:
+
+```bash
+./migrations.sh init
+./migrations.sh setup "$DATABASE_URL"
+./migrations.sh mark --all "$DATABASE_URL"   # record every on-disk file as applied
+```
+
+## How It Works
+
+### Two stores, different lifetimes
 
 ```
   repo (short rolling tail)          database (unbounded log)
@@ -20,33 +54,14 @@ Two stores with different lifetimes:
   ──────────────────►                └── 20260123...  backfill_totals
 ```
 
-The **directory** holds only migrations still rolling out across environments. Once a migration has shipped everywhere, the file is deleted from the repo. The **table** is the forever-log of every migration that ever ran against a given database.
+The **directory** holds only migrations still rolling out across environments. Once a migration has shipped everywhere, delete the file from the repo. The **tracking table** is the forever-log of every migration that ever ran against a given database; `status --history` surfaces rows whose files are gone.
 
-This is why the project ships with a `schema.sql` convention alongside `migrations/`: fresh deployments build from `schema.sql` (current state), and `migrations/` exists for transitions between releases. Applying hundreds of historical migrations to a new environment is as wrong as installing the first version of an OS and then running years of updates to catch up.
-
-## Repo Structure
-
-```
-├── src/               Source modules — concatenated by build.sh
-│   ├── main.sh        Command dispatcher
-│   ├── cmd_*.sh       One file per subcommand
-│   ├── config.sh      .migrationsrc discovery and parsing
-│   ├── db.sh          psql wrappers and SQL
-│   ├── fs.sh          Migration file I/O and header parsing
-│   └── util.sh        Logging, slugify, timestamp
-├── build.sh           Concatenates src/*.sh into migrations.sh
-├── VERSION            Version string stamped into the built artifact
-└── migrations.sh      Built artifact (gitignored; produced by build.sh)
-```
-
-The built `migrations.sh` is a standalone script. End users don't clone this repo — they drop the released `migrations.sh` into their own project and commit it.
-
-## How It Works
+This is why the project expects a `schema.sql` alongside `migrations/`: fresh deployments build from `schema.sql` (current state), and `migrations/` exists for transitions between releases. Applying hundreds of historical migrations to a new environment is as wrong as installing the first version of an OS and then running years of updates to catch up.
 
 ### Applying a migration
 
 1. `migrations.sh apply <dburl>` lists `migrations/*.sql` and sorts by the leading timestamp.
-2. For each file on disk, the tool asks the database which ones are already recorded (`JOIN` against the file timestamps only — the full history is never fetched).
+2. For each file on disk, the tool asks the database which are already recorded (`JOIN` against the file timestamps only — the full history is never fetched).
 3. Unapplied files run in timestamp order. Each file runs inside a single transaction that also inserts the tracking row:
 
    ```
@@ -84,44 +99,6 @@ There is no `down` command. Many database changes (`DROP TABLE`, data backfills)
 
 For drift between files and database, the tool provides `mark` (record as applied without running) and `unmark` (remove the tracking row). These are manual repair tools, not a rollback mechanism.
 
-### Pruning applied migrations
-
-Once a migration has shipped to every environment, delete the file from `migrations/`. The tracking table retains the row, so `status --history` can still show it. This is the convention that keeps `migrations/` small and `apply` fast on new clones.
-
-## Getting Started
-
-Drop `migrations.sh` into your project:
-
-```bash
-curl -L -o migrations.sh https://download.migrations.sh/
-chmod +x migrations.sh
-git add migrations.sh
-```
-
-Initialize:
-
-```bash
-./migrations.sh init                    # creates migrations/ and .migrationsrc
-./migrations.sh setup "$DATABASE_URL"   # creates the migrations tracking table
-```
-
-Write and apply a migration:
-
-```bash
-./migrations.sh new "Add orders table"  # creates migrations/<ts>_add_orders_table.sql
-# ...edit the file...
-./migrations.sh status "$DATABASE_URL"
-./migrations.sh apply  "$DATABASE_URL"
-```
-
-Adopting an existing project whose schema is already applied:
-
-```bash
-./migrations.sh init
-./migrations.sh setup "$DATABASE_URL"
-./migrations.sh mark --all "$DATABASE_URL"   # record every on-disk file as applied
-```
-
 ## Commands
 
 | Command | Purpose |
@@ -146,13 +123,28 @@ dir=migrations
 
 `dir` is the migrations directory, relative to the config file. If no `.migrationsrc` is found, the tool defaults to `./migrations`.
 
-## Building from source
+## Development
+
+`migrations.sh` is built by concatenating `src/*.sh`:
+
+```
+├── src/               Source modules
+│   ├── main.sh        Command dispatcher
+│   ├── cmd_*.sh       One file per subcommand
+│   ├── config.sh      .migrationsrc discovery and parsing
+│   ├── db.sh          psql wrappers and SQL
+│   ├── fs.sh          Migration file I/O and header parsing
+│   └── util.sh        Logging, slugify, timestamp
+├── build.sh           Concatenates src/*.sh into migrations.sh
+├── VERSION            Version string stamped into the built artifact
+└── migrations.sh      Built artifact (gitignored; produced by build.sh)
+```
+
+Build:
 
 ```bash
 ./build.sh
 ```
-
-Produces `migrations.sh` by concatenating `src/*.sh` in the order declared in `build.sh` and stamping in `VERSION`.
 
 ## Credits
 
