@@ -3,10 +3,6 @@ log_info() {
   printf 'migrations.sh: %s\n' "$*"
 }
 
-log_warn() {
-  :  # TODO
-}
-
 log_error() {
   printf 'migrations.sh: error: %s\n' "$*" >&2
 }
