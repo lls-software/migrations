@@ -1,6 +1,7 @@
 # shellcheck shell=bash
 cmd_new() {
-  local dir=./migrations
+  local dir=''
+  dir=$(config_get_dir)
   local description=''
   local directive=''
 

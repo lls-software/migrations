@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 cmd_apply() {
-  local dir=./migrations
   local dburl=''
+  local dir=''
+  dir=$(config_get_dir)
 
   while (( $# )); do
     case $1 in

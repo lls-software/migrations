@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 cmd_status() {
-  local dir=./migrations
   local dburl=
+  local dir=''
+  dir=$(config_get_dir)
   local history=
 
   while (( $# )); do

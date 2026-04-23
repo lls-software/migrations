@@ -41,8 +41,8 @@ dispatch() {
       cmd_apply "$@"
       ;;
     init)
-      log_error "command not yet implemented: $cmd"
-      exit 1
+      shift
+      cmd_init "$@"
       ;;
     *)
       log_error "unknown command: $cmd"
@@ -66,7 +66,7 @@ Usage:
   migrations.sh --help    | -h
 
 Commands:
-  init                    Scaffold migrations/, schema.sql, and config in the current repo
+  init    [--dir <path>]  Create migrations/ dir and .migrationsrc in the current repo
   setup   <dburl>         Create the migrations tracking table on the target database
   new     [--no-transaction] <description>
                           Create a new timestamped migration file

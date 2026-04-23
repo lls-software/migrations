@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 cmd_mark() {
-  local dir=./migrations
   local dburl=''
+  local dir=''
+  dir=$(config_get_dir)
   local ts=''
   local description=''
   local description_set=''
