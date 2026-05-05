@@ -73,7 +73,7 @@ cmd_apply() {
     log_info "applying $ts $desc"
     db_apply_file "$dburl" "$file" "$ts" "$desc" \
       || die "failed to apply $ts"
-    (( count++ ))
+    count=$((count + 1))
   done
 
   log_info "applied $count migration(s)"
