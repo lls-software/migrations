@@ -11,6 +11,14 @@ db_exec() {
 
 db_apply_file() {
   local dburl=$1 file=$2 ts=$3 desc=$4
+
+  if lambda_enabled; then
+    local filename
+    filename=$(basename "$file")
+    lambda_invoke "$(lambda_payload_with_file apply "$dburl" "$filename" "$file")"
+    return
+  fi
+
   local esc=${desc//\'/\'\'}
   local insert_sql="INSERT INTO migrations(timestamp, description) VALUES ('$ts', '$esc')"
 
@@ -26,6 +34,23 @@ db_apply_file() {
 
 db_applied_subset() {
   local dburl=$1
+
+  if lambda_enabled; then
+    local pending
+    pending=$(cat)
+    [[ -n $pending ]] || return 0
+    lambda_invoke "$(lambda_payload_simple status "$dburl")" \
+      | awk -F'\t' -v pending="$pending" '
+          BEGIN {
+            n = split(pending, arr, /\n/)
+            for (i = 1; i <= n; i++) if (arr[i] != "") keep[arr[i]] = 1
+          }
+          $2 == "applied" && ($1 in keep) { print $1 "|" $3 }
+        ' \
+      | sort
+    return
+  fi
+
   local values
   values=$(awk 'NF { printf "%s('\''%s'\'')", sep, $0; sep="," }')
   [[ -n $values ]] || return 0
@@ -37,12 +62,40 @@ db_applied_subset() {
 }
 
 db_list_applied() {
-  db_query "$1" \
+  local dburl=$1
+
+  if lambda_enabled; then
+    lambda_invoke "$(lambda_payload_simple status "$dburl")" \
+      | awk -F'\t' '$2 == "applied" { print $1 "|" $3 }' \
+      | sort
+    return
+  fi
+
+  db_query "$dburl" \
     "SELECT timestamp || '|' || description FROM migrations ORDER BY timestamp"
 }
 
 db_mark_missing() {
   local dburl=$1
+
+  if lambda_enabled; then
+    local line ts desc filename tmpfile
+    while IFS= read -r line; do
+      [[ -n $line ]] || continue
+      ts=${line%%|*}
+      desc=${line#*|}
+      [[ $ts =~ ^[0-9]{10}$ || $ts =~ ^[0-9]{14}$ ]] || continue
+      filename="${ts}_marked.sql"
+      tmpfile=$(mktemp)
+      printf -- '-- %s\n' "$desc" >"$tmpfile"
+      if lambda_invoke "$(lambda_payload_with_file mark "$dburl" "$filename" "$tmpfile")" >/dev/null; then
+        printf '%s\n' "$ts"
+      fi
+      rm -f "$tmpfile"
+    done
+    return
+  fi
+
   local values='' sep='' line ts desc esc
   while IFS= read -r line; do
     [[ -n $line ]] || continue
@@ -63,6 +116,17 @@ db_mark_missing() {
 
 db_insert_migration() {
   local dburl=$1 ts=$2 desc=$3
+
+  if lambda_enabled; then
+    local filename="${ts}_marked.sql" tmpfile rc
+    tmpfile=$(mktemp)
+    printf -- '-- %s\n' "$desc" >"$tmpfile"
+    lambda_invoke "$(lambda_payload_with_file mark "$dburl" "$filename" "$tmpfile")" >/dev/null
+    rc=$?
+    rm -f "$tmpfile"
+    return "$rc"
+  fi
+
   local esc=${desc//\'/\'\'}
   db_exec "$dburl" \
     "INSERT INTO migrations(timestamp, description) VALUES ('$ts', '$esc')"
@@ -70,12 +134,26 @@ db_insert_migration() {
 
 db_delete_migration() {
   local dburl=$1 ts=$2
+
+  if lambda_enabled; then
+    if lambda_invoke "$(lambda_payload_unmark "$dburl" "${ts}_unmark.sql")" >/dev/null; then
+      printf '1\n'
+    fi
+    return 0
+  fi
+
   db_query "$dburl" \
     "DELETE FROM migrations WHERE timestamp = '$ts' RETURNING 1"
 }
 
 db_has_migrations_table() {
   local dburl=$1
+
+  if lambda_enabled; then
+    printf 't'
+    return 0
+  fi
+
   psql "$dburl" -v ON_ERROR_STOP=1 -X -tAc \
     "SELECT to_regclass('public.migrations') IS NOT NULL"
 }

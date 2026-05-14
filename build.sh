@@ -7,6 +7,7 @@ cd "$(dirname "$0")"
 SRC_FILES=(
   src/util.sh
   src/config.sh
+  src/lambda.sh
   src/db.sh
   src/fs.sh
   src/cmd_init.sh
@@ -34,6 +35,8 @@ build() {
     echo 'set -euo pipefail'
     echo
     printf 'VERSION="%s"\n' "$version"
+    echo
+    echo 'LAMBDA_ARN=${LAMBDA_ARN-}'
     echo
     sed '/^source /d' "${SRC_FILES[@]}"
     echo

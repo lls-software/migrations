@@ -123,6 +123,59 @@ dir=migrations
 
 `dir` is the migrations directory, relative to the config file. If no `.migrationsrc` is found, the tool defaults to `./migrations`.
 
+## Running against a VPC-bound database
+
+The usual answer to "the database isn't reachable from my laptop" is a **bastion host** — an EC2 instance in the VPC that you SSH-tunnel through (`ssh -L 5432:db.internal:5432 bastion`), then run `psql postgres://localhost`. You own and pay for the bastion 24/7, manage SSH keys and OS patches, and every byte of query traffic crosses the internet twice (laptop → bastion → database → bastion → laptop).
+
+`migrations.sh` ships an alternative: package the migration runner as an **AWS Lambda function**, deploy it inside the VPC, and have the CLI invoke it on demand. No long-running host, no SSH keys, no double network hop, and the function is effectively free while idle. You only pay for invocations — pennies a month for a migration tool.
+
+The DB-touching commands (`setup`, `status`, `apply`, `mark`, `unmark`) accept `--lambda-arn <arn-or-name>` to engage this mode:
+
+```bash
+./migrations.sh apply --lambda-arn migrations "$DATABASE_URL"
+```
+
+The flag value can be a full ARN (`arn:aws:lambda:us-east-1:…:function:migrations`) or just the function name. Region and credentials come from your standard AWS CLI environment (`AWS_PROFILE`, `AWS_REGION`).
+
+Behind the flag, the CLI wraps each command in a JSON-RPC 2.0 request (filename, file content for `apply`/`mark`, the connection string) and invokes the Lambda via `aws lambda invoke-with-response-stream`. The Lambda — inside the VPC, with direct network access to the database — runs the **exact same `migrations.sh`** that's baked into its container image and streams `psql`'s stdout/stderr back over the response stream. From your terminal, migrations apply in real time, identical to running locally; the only difference is the AWS round-trip latency.
+
+- **Same script, both modes.** The Lambda's container ships `migrations.sh` itself and shells out to it — transaction handling, the `-- migrations.sh: no-transaction` header directive, the tracking-table schema, `ON_ERROR_STOP` semantics all live in one place. No second implementation to drift out of sync with the one you run locally.
+- **No stored secrets.** The Lambda holds no database credentials and needs no `secretsmanager:*` permissions. The connection string travels in the invocation payload, so rotation and revocation work exactly as they do for local-mode users.
+- **Stateless, immutable images.** A new version of `migrations.sh` is a new container tag (`v0.2.0`, `v0.3.0`, …). Roll forward by pointing the Lambda at a new image URI; roll back by pointing it at the old one.
+
+Requirements for Lambda mode (local-mode users don't need these):
+
+- `jq` — for safe JSON payload construction
+- `aws` CLI v2.13+ — for `invoke-with-response-stream`
+
+The Lambda is built and published from this repo (`lambda/Dockerfile`); see `lambda/handler.ts` for the JSON-RPC 2.0 protocol it speaks.
+
+### Deploying the Lambda
+
+Pre-built arm64 images are published to ECR and pullable from any AWS account. Pin to a specific version — no `latest` tag.
+
+```
+144273415340.dkr.ecr.<region>.amazonaws.com/migrations:v0.2.0
+```
+
+Available in: `us-east-1`, `us-east-2`, `us-west-2`, `ca-central-1`, `sa-east-1`, `eu-west-1`, `eu-central-1`, `eu-west-2`, `ap-southeast-1`, `ap-northeast-1`, `ap-south-1`, `ap-southeast-2`. Use the URI for the same region as your database.
+
+Minimum Lambda configuration:
+
+| Setting | Value |
+| --- | --- |
+| Package type | Container image |
+| Architecture | `arm64` |
+| Image URI | The ECR URI above |
+| Memory | 256 MB (psql is light; bump for very large migrations) |
+| Timeout | 900 s (the maximum; lets long migrations finish) |
+| VPC | Same VPC/subnets as your database, with a security group that can reach the database on its port |
+| Execution role | `AWSLambdaBasicExecutionRole` + `AWSLambdaVPCAccessExecutionRole`. No DB or secret permissions needed — credentials travel in the request payload. |
+
+Grant your CLI principal `lambda:InvokeFunctionWithResponseStream` on the function ARN.
+
+Note on credentials: the connection string is passed in the invocation payload. By default the handler does not log it; AWS doesn't auto-log Lambda event payloads to CloudWatch. Be careful enabling CloudTrail data events for Lambda invocations or third-party observability that captures request bodies — those *would* capture the dburl.
+
 ## Development
 
 `migrations.sh` is built by concatenating `src/*.sh`:
@@ -132,8 +185,9 @@ dir=migrations
 │   ├── main.sh        Command dispatcher
 │   ├── cmd_*.sh       One file per subcommand
 │   ├── config.sh      .migrationsrc discovery and parsing
-│   ├── db.sh          psql wrappers and SQL
+│   ├── db.sh          psql wrappers and SQL (with Lambda-mode dispatch)
 │   ├── fs.sh          Migration file I/O and header parsing
+│   ├── lambda.sh      JSON-RPC payload helpers and aws CLI invocation
 │   └── util.sh        Logging, slugify, timestamp
 ├── build.sh           Concatenates src/*.sh into migrations.sh
 ├── VERSION            Version string stamped into the built artifact

@@ -15,6 +15,15 @@ cmd_apply() {
         dir=${1#--dir=}
         shift
         ;;
+      --lambda-arn)
+        LAMBDA_ARN=${2-}
+        [[ -n $LAMBDA_ARN ]] || die "apply: --lambda-arn requires a value"
+        shift 2
+        ;;
+      --lambda-arn=*)
+        LAMBDA_ARN=${1#--lambda-arn=}
+        shift
+        ;;
       -*)
         die "apply: unknown option: $1"
         ;;
@@ -28,6 +37,8 @@ cmd_apply() {
 
   [[ -n $dburl ]] || die "apply: missing <dburl>"
   [[ -d $dir ]]   || die "migrations directory not found: $dir"
+
+  if lambda_enabled; then lambda_require_deps; fi
 
   if [[ $(db_has_migrations_table "$dburl") != t ]]; then
     die "migrations table not found; run: migrations.sh setup <dburl>"

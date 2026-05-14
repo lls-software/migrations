@@ -5,6 +5,15 @@ cmd_unmark() {
 
   while (( $# )); do
     case $1 in
+      --lambda-arn)
+        LAMBDA_ARN=${2-}
+        [[ -n $LAMBDA_ARN ]] || die "unmark: --lambda-arn requires a value"
+        shift 2
+        ;;
+      --lambda-arn=*)
+        LAMBDA_ARN=${1#--lambda-arn=}
+        shift
+        ;;
       -*)
         die "unmark: unknown option: $1"
         ;;
@@ -25,6 +34,8 @@ cmd_unmark() {
   [[ -n $ts ]] || die "unmark: missing <timestamp>"
   [[ $ts =~ ^[0-9]{10}$ || $ts =~ ^[0-9]{14}$ ]] \
     || die "unmark: invalid timestamp: $ts"
+
+  if lambda_enabled; then lambda_require_deps; fi
 
   if [[ $(db_has_migrations_table "$dburl") != t ]]; then
     die "migrations table not found; run: migrations.sh setup <dburl>"

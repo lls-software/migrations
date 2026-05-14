@@ -38,6 +38,15 @@ cmd_mark() {
         all=1
         shift
         ;;
+      --lambda-arn)
+        LAMBDA_ARN=${2-}
+        [[ -n $LAMBDA_ARN ]] || die "mark: --lambda-arn requires a value"
+        shift 2
+        ;;
+      --lambda-arn=*)
+        LAMBDA_ARN=${1#--lambda-arn=}
+        shift
+        ;;
       -*)
         die "mark: unknown option: $1"
         ;;
@@ -55,6 +64,8 @@ cmd_mark() {
   done
 
   [[ -n $dburl ]] || die "mark: missing <dburl>"
+
+  if lambda_enabled; then lambda_require_deps; fi
 
   if [[ -n $all ]]; then
     [[ -z $ts ]] || die "mark: --all does not take a timestamp"
