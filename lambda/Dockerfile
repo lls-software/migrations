@@ -35,4 +35,7 @@ COPY --from=builder /build/dist/handler.js ${LAMBDA_TASK_ROOT}/handler.js
 COPY --from=builder /build/migrations.sh ${LAMBDA_TASK_ROOT}/migrations.sh
 RUN chmod +x ${LAMBDA_TASK_ROOT}/migrations.sh
 
+ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem ${LAMBDA_TASK_ROOT}/rds-global-bundle.pem
+RUN chmod 0444 ${LAMBDA_TASK_ROOT}/rds-global-bundle.pem
+
 CMD ["handler.handler"]

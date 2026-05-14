@@ -35,11 +35,23 @@ lambda_payload_unmark() {
 }
 
 lambda_invoke() {
-  local payload=$1
-  aws lambda invoke-with-response-stream \
+  local payload=$1 outfile metafile rc failed=
+  outfile=$(mktemp)
+  metafile=$(mktemp)
+
+  aws lambda invoke \
     --function-name "$LAMBDA_ARN" \
     --cli-binary-format raw-in-base64-out \
     --payload "$payload" \
-    >(cat) \
-    >/dev/null
+    "$outfile" \
+    >"$metafile"
+  rc=$?
+
+  cat "$outfile"
+
+  if (( rc != 0 )) || grep -q '"FunctionError"' "$metafile"; then
+    failed=1
+  fi
+  rm -f "$outfile" "$metafile"
+  [[ -z $failed ]]
 }

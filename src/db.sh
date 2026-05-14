@@ -1,4 +1,10 @@
 # shellcheck shell=bash
+: "${PGCONNECT_TIMEOUT:=10}"
+: "${PGKEEPALIVES_IDLE:=30}"
+: "${PGKEEPALIVES_INTERVAL:=10}"
+: "${PGKEEPALIVES_COUNT:=3}"
+export PGCONNECT_TIMEOUT PGKEEPALIVES_IDLE PGKEEPALIVES_INTERVAL PGKEEPALIVES_COUNT
+
 db_query() {
   local dburl=$1 sql=$2
   psql "$dburl" -v ON_ERROR_STOP=1 -X -q -tAc "$sql"

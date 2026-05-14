@@ -137,7 +137,7 @@ The DB-touching commands (`setup`, `status`, `apply`, `mark`, `unmark`) accept `
 
 The flag value can be a full ARN (`arn:aws:lambda:us-east-1:…:function:migrations`) or just the function name. Region and credentials come from your standard AWS CLI environment (`AWS_PROFILE`, `AWS_REGION`).
 
-Behind the flag, the CLI wraps each command in a JSON-RPC 2.0 request (filename, file content for `apply`/`mark`, the connection string) and invokes the Lambda via `aws lambda invoke-with-response-stream`. The Lambda — inside the VPC, with direct network access to the database — runs the **exact same `migrations.sh`** that's baked into its container image and streams `psql`'s stdout/stderr back over the response stream. From your terminal, migrations apply in real time, identical to running locally; the only difference is the AWS round-trip latency.
+Behind the flag, the CLI wraps each command in a JSON-RPC 2.0 request (filename, file content for `apply`/`mark`, the connection string) and invokes the Lambda via `aws lambda invoke`. The Lambda — inside the VPC, with direct network access to the database — runs the **exact same `migrations.sh`** baked into its container image, and the combined `psql` stdout/stderr is returned synchronously and printed to your terminal. Lambda's 6 MB response payload cap applies, which is plenty for typical migrations.
 
 - **Same script, both modes.** The Lambda's container ships `migrations.sh` itself and shells out to it — transaction handling, the `-- migrations.sh: no-transaction` header directive, the tracking-table schema, `ON_ERROR_STOP` semantics all live in one place. No second implementation to drift out of sync with the one you run locally.
 - **No stored secrets.** The Lambda holds no database credentials and needs no `secretsmanager:*` permissions. The connection string travels in the invocation payload, so rotation and revocation work exactly as they do for local-mode users.
@@ -146,7 +146,7 @@ Behind the flag, the CLI wraps each command in a JSON-RPC 2.0 request (filename,
 Requirements for Lambda mode (local-mode users don't need these):
 
 - `jq` — for safe JSON payload construction
-- `aws` CLI v2.13+ — for `invoke-with-response-stream`
+- `aws` CLI v2
 
 The Lambda is built and published from this repo (`lambda/Dockerfile`); see `lambda/handler.ts` for the JSON-RPC 2.0 protocol it speaks.
 
@@ -155,7 +155,7 @@ The Lambda is built and published from this repo (`lambda/Dockerfile`); see `lam
 Pre-built arm64 images are published to ECR and pullable from any AWS account. Pin to a specific version — no `latest` tag.
 
 ```
-144273415340.dkr.ecr.<region>.amazonaws.com/migrations:v0.2.0
+144273415340.dkr.ecr.<region>.amazonaws.com/migrations:v0.2.3
 ```
 
 Available in: `us-east-1`, `us-east-2`, `us-west-2`, `ca-central-1`, `sa-east-1`, `eu-west-1`, `eu-central-1`, `eu-west-2`, `ap-southeast-1`, `ap-northeast-1`, `ap-south-1`, `ap-southeast-2`. Use the URI for the same region as your database.

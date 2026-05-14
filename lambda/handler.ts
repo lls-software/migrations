@@ -17,6 +17,12 @@ declare const awslambda: {
 
 const MIGRATIONS_SH = process.env.MIGRATIONS_SH ?? '/var/task/migrations.sh'
 
+process.env.PGCONNECT_TIMEOUT ??= '10'
+process.env.PGKEEPALIVES_IDLE ??= '30'
+process.env.PGKEEPALIVES_INTERVAL ??= '10'
+process.env.PGKEEPALIVES_COUNT ??= '3'
+process.env.PGSSLROOTCERT ??= '/var/task/rds-global-bundle.pem'
+
 const filename = /^[0-9]{10}(?:[0-9]{4})?_[A-Za-z0-9_]+\.sql$/
 const id = 'string | number | null'
 
