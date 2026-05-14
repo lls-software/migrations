@@ -42,19 +42,25 @@ db_applied_subset() {
   local dburl=$1
 
   if lambda_enabled; then
-    local pending
+    local pending pending_file rc
     pending=$(cat)
     [[ -n $pending ]] || return 0
+    # `awk -v pending="$pending"` would error on BSD awk ("newline in string")
+    # because pending is multi-line. Pass it via a temp file instead.
+    pending_file=$(mktemp)
+    printf '%s' "$pending" >"$pending_file"
     lambda_invoke "$(lambda_payload_simple status "$dburl")" \
-      | awk -F'\t' -v pending="$pending" '
+      | awk -F'\t' -v pf="$pending_file" '
           BEGIN {
-            n = split(pending, arr, /\n/)
-            for (i = 1; i <= n; i++) if (arr[i] != "") keep[arr[i]] = 1
+            while ((getline line < pf) > 0) if (line != "") keep[line] = 1
+            close(pf)
           }
           $2 == "applied" && ($1 in keep) { print $1 "|" $3 }
         ' \
       | sort
-    return
+    rc=$?
+    rm -f "$pending_file"
+    return "$rc"
   fi
 
   local values
