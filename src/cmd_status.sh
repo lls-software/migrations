@@ -38,9 +38,9 @@ cmd_status() {
         die "status: unknown option: $1"
         ;;
       *)
+        [[ -z $dburl ]] || die "status: unexpected argument: $1"
         dburl=$1
         shift
-        break
         ;;
     esac
   done

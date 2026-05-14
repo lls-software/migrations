@@ -4,7 +4,7 @@ config_find() {
   while true; do
     [[ -f $dir/.migrationsrc ]] && { printf '%s\n' "$dir/.migrationsrc"; return; }
     [[ -d $dir/.git ]] && return 1
-    [[ $dir == / ]] && return 1
+    [[ $dir == / || -z $dir ]] && return 1
     dir=${dir%/*}
   done
 }
