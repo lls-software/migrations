@@ -30,6 +30,7 @@ build() {
     echo '# Copyright (c) 2026 Leandro Lima'
     echo '# SPDX-License-Identifier: MIT'
     echo '# https://migrations.sh'
+    echo '# https://github.com/lls-software/migrations'
     echo 'set -euo pipefail'
     echo
     printf 'VERSION="%s"\n' "$version"

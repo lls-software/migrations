@@ -4,6 +4,7 @@ cmd_status() {
   local dir=''
   dir=$(config_get_dir)
   local history=
+  local porcelain=
 
   while (( $# )); do
     case $1 in
@@ -18,6 +19,10 @@ cmd_status() {
         ;;
       --history)
         history=1
+        shift
+        ;;
+      --porcelain)
+        porcelain=1
         shift
         ;;
       -*)
@@ -47,11 +52,11 @@ cmd_status() {
     all_applied=$(db_list_applied "$dburl")
   fi
 
-  status_render "$dir" "$files" "$applied" "$all_applied"
+  status_render "$dir" "$files" "$applied" "$all_applied" "$porcelain"
 }
 
 status_render() {
-  local dir=$1 files=$2 applied=$3 all_applied=$4
+  local dir=$1 files=$2 applied=$3 all_applied=$4 porcelain=${5-}
 
   declare -A applied_desc=()
   declare -A file_set=()
@@ -89,6 +94,12 @@ status_render() {
       [[ -n ${file_set[$ts]-} ]] && continue
       rows+=$(printf '%s\tapplied\t%s\n' "$ts" "$desc")$'\n'
     done <<< "$all_applied"
+  fi
+
+  if [[ -n $porcelain ]]; then
+    [[ -n $rows ]] || return 0
+    printf '%s' "$rows" | sort -k1,1
+    return 0
   fi
 
   if [[ -z $rows ]]; then

@@ -198,3 +198,6 @@ yarn-error.log*
 
 # Built artifact
 migrations.sh
+
+# Local publish script with org-specific ECR target
+publish.sh

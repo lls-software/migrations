@@ -1,0 +1,13 @@
+.git
+.github
+.claude
+.vscode
+.idea
+node_modules
+**/node_modules
+dist
+**/dist
+*.tsbuildinfo
+LICENSE
+README.md
+*.md
